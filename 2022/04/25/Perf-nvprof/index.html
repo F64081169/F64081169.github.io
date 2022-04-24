@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"f64081169.github.io","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="1.Label tool Yolo_Label   使用windows環境可以work!(其他環境還沒測試)    選擇目標物件的class(ex: cat or dog)，並框出範圍    完成後出現.txt檔，裡面內容即是框出物件的class與點座標  格式說明  openCV教學：了解yolo dataset格式並以openCV框出目標物檢查是否正確   2.PerfPerf是什麼？ Per">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Perf &amp; nvprof">
+<meta property="og:url" content="https://f64081169.github.io/2022/04/25/Perf-nvprof/index.html">
+<meta property="og:site_name" content="寶琳的城市日記">
+<meta property="og:description" content="1.Label tool Yolo_Label   使用windows環境可以work!(其他環境還沒測試)    選擇目標物件的class(ex: cat or dog)，並框出範圍    完成後出現.txt檔，裡面內容即是框出物件的class與點座標  格式說明  openCV教學：了解yolo dataset格式並以openCV框出目標物檢查是否正確   2.PerfPerf是什麼？ Per">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:image" content="https://i.imgur.com/sepsW1e.png">
+<meta property="og:image" content="https://i.imgur.com/IH2E2XV.png">
+<meta property="og:image" content="https://i.imgur.com/fauGQFW.png">
+<meta property="og:image" content="https://i.imgur.com/WyYCp0i.png">
+<meta property="og:image" content="https://i.imgur.com/u6Ia6Uu.png">
+<meta property="og:image" content="https://i.imgur.com/Mzn9r9p.png">
+<meta property="og:image" content="https://i.imgur.com/tU4wms1.png">
+<meta property="article:published_time" content="2022-04-24T18:52:04.000Z">
+<meta property="article:modified_time" content="2022-04-24T18:52:10.328Z">
+<meta property="article:author" content="Cat Burglar">
+<meta property="article:tag" content="窩豪可愛">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.imgur.com/sepsW1e.png">
+
+<link rel="canonical" href="https://f64081169.github.io/2022/04/25/Perf-nvprof/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-TW'
+  };
+</script>
+
+  <title>Perf & nvprof | 寶琳的城市日記</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切換導航欄">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">寶琳的城市日記</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">city diary</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首頁</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-TW">
+    <link itemprop="mainEntityOfPage" href="https://f64081169.github.io/2022/04/25/Perf-nvprof/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Cat Burglar">
+      <meta itemprop="description" content="有空就會更新">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="寶琳的城市日記">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Perf & nvprof
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">發表於</span>
+              
+
+              <time title="創建時間：2022-04-25 02:52:04 / 修改時間：02:52:10" itemprop="dateCreated datePublished" datetime="2022-04-25T02:52:04+08:00">2022-04-25</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="1-Label-tool"><a href="#1-Label-tool" class="headerlink" title="1.Label tool"></a>1.Label tool</h3><ol>
+<li><a target="_blank" rel="noopener" href="https://github.com/developer0hye/Yolo_Label">Yolo_Label</a></li>
+</ol>
+<ul>
+<li>使用windows環境可以work!(其他環境還沒測試)</li>
+</ul>
+<p><img src="https://i.imgur.com/sepsW1e.png"></p>
+<ul>
+<li>選擇目標物件的class(ex: cat or dog)，並框出範圍</li>
+</ul>
+<p><img src="https://i.imgur.com/IH2E2XV.png"></p>
+<ul>
+<li><p>完成後出現.txt檔，裡面內容即是框出物件的class與點座標<br><img src="https://i.imgur.com/fauGQFW.png"></p>
+</li>
+<li><p>格式說明</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43508499/article/details/118600392">openCV教學：了解yolo dataset格式並以openCV框出目標物檢查是否正確</a></p>
+</li>
+</ul>
+<h3 id="2-Perf"><a href="#2-Perf" class="headerlink" title="2.Perf"></a>2.Perf</h3><h4 id="Perf是什麼？"><a href="#Perf是什麼？" class="headerlink" title="Perf是什麼？"></a>Perf是什麼？</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=Mba2ONCA0kI">Perf基礎教學影片</a></li>
+<li><a target="_blank" rel="noopener" href="https://tigercosmos.xyz/post/2020/08/system/perf-basic/">基本介紹</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.collabora.com/news-and-blog/blog/2017/03/21/performance-analysis-in-linux/">Performance analysis in Linux</a></li>
+</ul>
+<h4 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h4><p><code>perf record a.out &amp;&amp; perf annotate</code></p>
+<ul>
+<li><code>perf record</code> ：後面加上目標執行檔做做程式紀錄後儲存為.perf格式</li>
+<li><code>perf annotate</code> ：查看結果</li>
+</ul>
+<h4 id="呈現結果"><a href="#呈現結果" class="headerlink" title="呈現結果"></a>呈現結果</h4><p><img src="https://i.imgur.com/WyYCp0i.png"></p>
+<ul>
+<li>左邊為組合語言值行時間佔全部時間的百分比，右邊為對應的組合語言內容</li>
+<li>可以觀察到<code>cf:    addl $0x1,-0x20020(%rbp)</code> 執行時間佔全部27.70%，為最耗時的指令，要做程式優化可以從這裡開始著手。</li>
+</ul>
+<p>(以上來源為<a target="_blank" rel="noopener" href="https://tigercosmos.xyz/post/2020/08/system/perf-basic/">基本介紹</a>中的程式範例，詳細探討的議題內容可以點進去連結)</p>
+<h4 id="Perf安裝"><a href="#Perf安裝" class="headerlink" title="Perf安裝"></a>Perf安裝</h4><ul>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/yoffy/jetson-nano-kernel/blob/master/install-perf.sh">perf script</a><br><img src="https://i.imgur.com/u6Ia6Uu.png"></p>
+</li>
+<li><p>使用此shell script install perf和相關套件，打<code>pert list</code>檢查安裝成功</p>
+</li>
+<li><p>遇到問題：安裝完後有把環境設定搞的怪怪的，如下面三點</p>
+<ol>
+<li>以前下<code>trtexec</code>指令即可build tensorRT engine做加速，現在需要改成<code>/usr/src/tensorrt/bin/trtexec</code>才能抓到執行檔做加速</li>
+<li>使用nvprof的錯誤指令不一樣，原本像是抓不到.trt檔(後來檢查才發現是我路徑寫錯)，使用完上面的script後，錯誤訊息改成下面nvprof抓不到cupti library。</li>
+<li>預設的<code>jetson_release</code>指令可以查看系統軟體版本資訊，現在無法抓到內容<br><img src="https://i.imgur.com/Mzn9r9p.png"></li>
+</ol>
+</li>
+</ul>
+<h3 id="3-nvprof"><a href="#3-nvprof" class="headerlink" title="3.nvprof"></a>3.nvprof</h3><ul>
+<li><a target="_blank" rel="noopener" href="https://gist.github.com/sonots/5abc0bccec2010ac69ff74788b265086">nvprof tutorial</a></li>
+</ul>
+<p><img src="https://i.imgur.com/tU4wms1.png"></p>
+<ul>
+<li>遇到cupti library 抓不到的問題</li>
+</ul>
+<h4 id="跑論壇上面的nvprof-demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題"><a href="#跑論壇上面的nvprof-demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題" class="headerlink" title="跑論壇上面的nvprof demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題"></a>跑論壇上面的nvprof demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://forums.developer.nvidia.com/t/visual-profiler-on-jetson-nano/160596">nvprof demo on jetson nano</a><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">======== Warning: The path to cupti library might not be</span><br><span class="line">set in LD_LIBRARY_PATH. By default, it is installed in</span><br><span class="line">/usr/local/&lt;cuda-toolkit&gt;/extras/CUPTI/lib64 or</span><br><span class="line">/usr/local/&lt;cuda-toolkit&gt;/targets/&lt;arch&gt;/lib.========</span><br><span class="line">Warning: No CUDA application was profiled, exiting</span><br><span class="line">======== Error: Application received signal 132</span><br></pre></td></tr></table></figure>
+<a target="_blank" rel="noopener" href="https://forums.developer.nvidia.com/t/nvprof-warns-the-path-to-cupti-and-cuda-injection-libraries-are-not-set-in-ld-library-path/172848/2">此連結說sudo指令有時會影響環境變量，以下是刪除sudo指令後的錯誤訊息</a><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">==9520== NVPROF is profiling process 9520, command:</span><br><span class="line">python3 /home/f64081169/Desktop/demo/pytorch-</span><br><span class="line">YOLOv4/demo_trt.py /home/f64081169/Desktop/demo/pytorch-YOLOv4/data/dog.jpg 416 416</span><br><span class="line">==9520== Warning: ERR_NVGPUCTRPERM - The user does not</span><br><span class="line">have permission to profile on the target device. See the</span><br><span class="line">following link for instructions to enable permissions</span><br><span class="line">and get more information: https://developer.nvidia.com/ERR_NVGPUCTRPERM </span><br><span class="line">==9520== Profiling application: python3 /home/f64081169/Desktop/demo/pytorch-YOLOv4/demo_trt.py /home/f64081169/Desktop/demo/pytorch-YOLOv4/data/dog.jpg 416 416</span><br><span class="line">==9520== Profiling result:</span><br><span class="line">No kernels were profiled.</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="跑nvprof"><a href="#跑nvprof" class="headerlink" title="跑nvprof"></a>跑nvprof</h4><h4 id="執行結果如下"><a href="#執行結果如下" class="headerlink" title="執行結果如下"></a>執行結果如下</h4><ul>
+<li>指令 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">! cd NVIDIA_CUDA-<span class="number">10.2</span>_Samples/0_Simple/matrixMul ;ls &amp;&amp; make</span><br><span class="line">! sudo /usr/local/cuda-<span class="number">10.2</span>/<span class="built_in">bin</span>/nvprof /home/f64081169/Desktop/demo/NVIDIA_CUDA-<span class="number">10.2</span>_Samples/0_Simple/matrixMul/matrixMul</span><br><span class="line">! cd ~/Desktop/demo;</span><br></pre></td></tr></table></figure></li>
+<li>執行結果<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">Output exceeds the size limit. Open the full output data in a text editor</span><br><span class="line">Makefile  matrixMul  matrixMul.cu  matrixMul.o	NsightEclipse.xml  readme.txt</span><br><span class="line">make: Nothing to be done for &#x27;all&#x27;.</span><br><span class="line">[Matrix Multiply Using CUDA] - Starting...</span><br><span class="line">==16367== NVPROF is profiling process 16367, command: /home/f64081169/Desktop/demo/NVIDIA_CUDA-10.2_Samples/0_Simple/matrixMul/matrixMul</span><br><span class="line">==16367== Warning: Unified Memory Profiling is not supported on the underlying platform. System requirements for unified memory can be found at: http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#um-requirements</span><br><span class="line">GPU Device 0: &quot;Maxwell&quot; with compute capability 5.3</span><br><span class="line"></span><br><span class="line">MatrixA(320,320), MatrixB(640,320)</span><br><span class="line">Computing result using CUDA Kernel...</span><br><span class="line">done</span><br><span class="line">Performance= 24.44 GFlop/s, Time= 5.363 msec, Size= 131072000 Ops, WorkgroupSize= 1024 threads/block</span><br><span class="line">Checking computed result for correctness: Result = PASS</span><br><span class="line"></span><br><span class="line">NOTE: The CUDA Samples are not meant for performancemeasurements. Results may vary when GPU Boost is enabled.</span><br><span class="line">==16367== Profiling application: /home/f64081169/Desktop/demo/NVIDIA_CUDA-10.2_Samples/0_Simple/matrixMul/matrixMul</span><br><span class="line">==16367== Profiling result:</span><br><span class="line">            Type  Time(%)      Time     Calls       Avg       Min       Max  Name</span><br><span class="line"> GPU activities:   99.98%  1.52216s       301  5.0570ms  4.4092ms  15.839ms  void MatrixMulCUDA&lt;int=32&gt;(float*, float*, float*, int, int)</span><br><span class="line">                    0.02%  233.19us         2  116.59us  79.743us  153.44us  [CUDA memcpy HtoD]</span><br><span class="line">                    0.01%  86.462us         1  86.462us  86.462us  86.462us  [CUDA memcpy DtoH]</span><br><span class="line">      API calls:   73.21%  1.59586s         1  1.59586s  1.59586s  1.59586s  cudaEventSynchronize</span><br><span class="line">                   25.02%  545.39ms         3  181.80ms  742.86us  543.81ms  cudaMalloc</span><br><span class="line">                    0.97%  21.223ms         2  10.612ms  21.197us  21.202ms  cudaStreamSynchronize</span><br><span class="line">                    0.64%  13.917ms       301  46.235us  34.114us  439.42us  cudaLaunchKernel</span><br><span class="line">                    0.11%  2.4702ms         3  823.41us  282.50us  1.7598ms  cudaMemcpyAsync</span><br><span class="line">...</span><br><span class="line">                    0.00%  4.1140us         2  2.0570us  1.3540us  2.7600us  cuDeviceGet</span><br><span class="line">                    0.00%  2.7090us         1  2.7090us  2.7090us  2.7090us  cuDeviceGetName</span><br><span class="line">                    0.00%  1.5100us         1  1.5100us  1.5100us  1.5100us  cudaGetDeviceCount</span><br><span class="line">                    0.00%     938ns         1     938ns     938ns     938ns  cuDeviceGetUuid</span><br></pre></td></tr></table></figure></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/23/Jetson-Nano-Further-research/" rel="prev" title="Jetson Nano Further research">
+      <i class="fa fa-chevron-left"></i> Jetson Nano Further research
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目錄
+        </li>
+        <li class="sidebar-nav-overview">
+          本站概要
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Label-tool"><span class="nav-number">1.</span> <span class="nav-text">1.Label tool</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Perf"><span class="nav-number">2.</span> <span class="nav-text">2.Perf</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Perf%E6%98%AF%E4%BB%80%E9%BA%BC%EF%BC%9F"><span class="nav-number">2.1.</span> <span class="nav-text">Perf是什麼？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="nav-number">2.2.</span> <span class="nav-text">使用方式</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%91%88%E7%8F%BE%E7%B5%90%E6%9E%9C"><span class="nav-number">2.3.</span> <span class="nav-text">呈現結果</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Perf%E5%AE%89%E8%A3%9D"><span class="nav-number">2.4.</span> <span class="nav-text">Perf安裝</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-nvprof"><span class="nav-number">3.</span> <span class="nav-text">3.nvprof</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B7%91%E8%AB%96%E5%A3%87%E4%B8%8A%E9%9D%A2%E7%9A%84nvprof-demo%E6%98%AF%E5%8F%AF%E4%BB%A5%E5%9F%B7%E8%A1%8C%E7%9A%84%EF%BC%8C%E6%8E%A8%E6%B8%AC%E6%98%AF%E5%8E%9F%E6%9C%AC%E6%8C%87%E4%BB%A4%E4%B8%8B%E9%8C%AF%E6%8A%93%E4%B8%8D%E5%88%B0%E5%9F%B7%E8%A1%8C%E6%AA%94%EF%BC%8Cnvprof%E6%9C%AC%E8%BA%AB%E6%B2%92%E6%9C%89%E5%95%8F%E9%A1%8C"><span class="nav-number">3.1.</span> <span class="nav-text">跑論壇上面的nvprof demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%B7%91nvprof"><span class="nav-number">3.2.</span> <span class="nav-text">跑nvprof</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9F%B7%E8%A1%8C%E7%B5%90%E6%9E%9C%E5%A6%82%E4%B8%8B"><span class="nav-number">3.3.</span> <span class="nav-text">執行結果如下</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Cat Burglar</p>
+  <div class="site-description" itemprop="description">有空就會更新</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">文章</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">標籤</span>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/F64081169" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;F64081169" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:baobaomokk@gmail.com" title="E-Mail → mailto:baobaomokk@gmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Cat Burglar</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 強力驅動
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -144,6 +144,127 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-TW">
+    <link itemprop="mainEntityOfPage" href="https://f64081169.github.io/2022/04/25/Perf-nvprof/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Cat Burglar">
+      <meta itemprop="description" content="有空就會更新">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="寶琳的城市日記">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/04/25/Perf-nvprof/" class="post-title-link" itemprop="url">Perf & nvprof</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">發表於</span>
+              
+
+              <time title="創建時間：2022-04-25 02:52:04 / 修改時間：02:52:10" itemprop="dateCreated datePublished" datetime="2022-04-25T02:52:04+08:00">2022-04-25</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="1-Label-tool"><a href="#1-Label-tool" class="headerlink" title="1.Label tool"></a>1.Label tool</h3><ol>
+<li><a target="_blank" rel="noopener" href="https://github.com/developer0hye/Yolo_Label">Yolo_Label</a></li>
+</ol>
+<ul>
+<li>使用windows環境可以work!(其他環境還沒測試)</li>
+</ul>
+<p><img src="https://i.imgur.com/sepsW1e.png"></p>
+<ul>
+<li>選擇目標物件的class(ex: cat or dog)，並框出範圍</li>
+</ul>
+<p><img src="https://i.imgur.com/IH2E2XV.png"></p>
+<ul>
+<li><p>完成後出現.txt檔，裡面內容即是框出物件的class與點座標<br><img src="https://i.imgur.com/fauGQFW.png"></p>
+</li>
+<li><p>格式說明</p>
+</li>
+<li><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_43508499/article/details/118600392">openCV教學：了解yolo dataset格式並以openCV框出目標物檢查是否正確</a></p>
+</li>
+</ul>
+<h3 id="2-Perf"><a href="#2-Perf" class="headerlink" title="2.Perf"></a>2.Perf</h3><h4 id="Perf是什麼？"><a href="#Perf是什麼？" class="headerlink" title="Perf是什麼？"></a>Perf是什麼？</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=Mba2ONCA0kI">Perf基礎教學影片</a></li>
+<li><a target="_blank" rel="noopener" href="https://tigercosmos.xyz/post/2020/08/system/perf-basic/">基本介紹</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.collabora.com/news-and-blog/blog/2017/03/21/performance-analysis-in-linux/">Performance analysis in Linux</a></li>
+</ul>
+<h4 id="使用方式"><a href="#使用方式" class="headerlink" title="使用方式"></a>使用方式</h4><p><code>perf record a.out &amp;&amp; perf annotate</code></p>
+<ul>
+<li><code>perf record</code> ：後面加上目標執行檔做做程式紀錄後儲存為.perf格式</li>
+<li><code>perf annotate</code> ：查看結果</li>
+</ul>
+<h4 id="呈現結果"><a href="#呈現結果" class="headerlink" title="呈現結果"></a>呈現結果</h4><p><img src="https://i.imgur.com/WyYCp0i.png"></p>
+<ul>
+<li>左邊為組合語言值行時間佔全部時間的百分比，右邊為對應的組合語言內容</li>
+<li>可以觀察到<code>cf:    addl $0x1,-0x20020(%rbp)</code> 執行時間佔全部27.70%，為最耗時的指令，要做程式優化可以從這裡開始著手。</li>
+</ul>
+<p>(以上來源為<a target="_blank" rel="noopener" href="https://tigercosmos.xyz/post/2020/08/system/perf-basic/">基本介紹</a>中的程式範例，詳細探討的議題內容可以點進去連結)</p>
+<h4 id="Perf安裝"><a href="#Perf安裝" class="headerlink" title="Perf安裝"></a>Perf安裝</h4><ul>
+<li><p><a target="_blank" rel="noopener" href="https://github.com/yoffy/jetson-nano-kernel/blob/master/install-perf.sh">perf script</a><br><img src="https://i.imgur.com/u6Ia6Uu.png"></p>
+</li>
+<li><p>使用此shell script install perf和相關套件，打<code>pert list</code>檢查安裝成功</p>
+</li>
+<li><p>遇到問題：安裝完後有把環境設定搞的怪怪的，如下面三點</p>
+<ol>
+<li>以前下<code>trtexec</code>指令即可build tensorRT engine做加速，現在需要改成<code>/usr/src/tensorrt/bin/trtexec</code>才能抓到執行檔做加速</li>
+<li>使用nvprof的錯誤指令不一樣，原本像是抓不到.trt檔(後來檢查才發現是我路徑寫錯)，使用完上面的script後，錯誤訊息改成下面nvprof抓不到cupti library。</li>
+<li>預設的<code>jetson_release</code>指令可以查看系統軟體版本資訊，現在無法抓到內容<br><img src="https://i.imgur.com/Mzn9r9p.png"></li>
+</ol>
+</li>
+</ul>
+<h3 id="3-nvprof"><a href="#3-nvprof" class="headerlink" title="3.nvprof"></a>3.nvprof</h3><ul>
+<li><a target="_blank" rel="noopener" href="https://gist.github.com/sonots/5abc0bccec2010ac69ff74788b265086">nvprof tutorial</a></li>
+</ul>
+<p><img src="https://i.imgur.com/tU4wms1.png"></p>
+<ul>
+<li>遇到cupti library 抓不到的問題</li>
+</ul>
+<h4 id="跑論壇上面的nvprof-demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題"><a href="#跑論壇上面的nvprof-demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題" class="headerlink" title="跑論壇上面的nvprof demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題"></a>跑論壇上面的nvprof demo是可以執行的，推測是原本指令下錯抓不到執行檔，nvprof本身沒有問題</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://forums.developer.nvidia.com/t/visual-profiler-on-jetson-nano/160596">nvprof demo on jetson nano</a><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">======== Warning: The path to cupti library might not be</span><br><span class="line">set in LD_LIBRARY_PATH. By default, it is installed in</span><br><span class="line">/usr/local/&lt;cuda-toolkit&gt;/extras/CUPTI/lib64 or</span><br><span class="line">/usr/local/&lt;cuda-toolkit&gt;/targets/&lt;arch&gt;/lib.========</span><br><span class="line">Warning: No CUDA application was profiled, exiting</span><br><span class="line">======== Error: Application received signal 132</span><br></pre></td></tr></table></figure>
+<a target="_blank" rel="noopener" href="https://forums.developer.nvidia.com/t/nvprof-warns-the-path-to-cupti-and-cuda-injection-libraries-are-not-set-in-ld-library-path/172848/2">此連結說sudo指令有時會影響環境變量，以下是刪除sudo指令後的錯誤訊息</a><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">==9520== NVPROF is profiling process 9520, command:</span><br><span class="line">python3 /home/f64081169/Desktop/demo/pytorch-</span><br><span class="line">YOLOv4/demo_trt.py /home/f64081169/Desktop/demo/pytorch-YOLOv4/data/dog.jpg 416 416</span><br><span class="line">==9520== Warning: ERR_NVGPUCTRPERM - The user does not</span><br><span class="line">have permission to profile on the target device. See the</span><br><span class="line">following link for instructions to enable permissions</span><br><span class="line">and get more information: https://developer.nvidia.com/ERR_NVGPUCTRPERM </span><br><span class="line">==9520== Profiling application: python3 /home/f64081169/Desktop/demo/pytorch-YOLOv4/demo_trt.py /home/f64081169/Desktop/demo/pytorch-YOLOv4/data/dog.jpg 416 416</span><br><span class="line">==9520== Profiling result:</span><br><span class="line">No kernels were profiled.</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="跑nvprof"><a href="#跑nvprof" class="headerlink" title="跑nvprof"></a>跑nvprof</h4><h4 id="執行結果如下"><a href="#執行結果如下" class="headerlink" title="執行結果如下"></a>執行結果如下</h4><ul>
+<li>指令 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">! cd NVIDIA_CUDA-<span class="number">10.2</span>_Samples/0_Simple/matrixMul ;ls &amp;&amp; make</span><br><span class="line">! sudo /usr/local/cuda-<span class="number">10.2</span>/<span class="built_in">bin</span>/nvprof /home/f64081169/Desktop/demo/NVIDIA_CUDA-<span class="number">10.2</span>_Samples/0_Simple/matrixMul/matrixMul</span><br><span class="line">! cd ~/Desktop/demo;</span><br></pre></td></tr></table></figure></li>
+<li>執行結果<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">Output exceeds the size limit. Open the full output data in a text editor</span><br><span class="line">Makefile  matrixMul  matrixMul.cu  matrixMul.o	NsightEclipse.xml  readme.txt</span><br><span class="line">make: Nothing to be done for &#x27;all&#x27;.</span><br><span class="line">[Matrix Multiply Using CUDA] - Starting...</span><br><span class="line">==16367== NVPROF is profiling process 16367, command: /home/f64081169/Desktop/demo/NVIDIA_CUDA-10.2_Samples/0_Simple/matrixMul/matrixMul</span><br><span class="line">==16367== Warning: Unified Memory Profiling is not supported on the underlying platform. System requirements for unified memory can be found at: http://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#um-requirements</span><br><span class="line">GPU Device 0: &quot;Maxwell&quot; with compute capability 5.3</span><br><span class="line"></span><br><span class="line">MatrixA(320,320), MatrixB(640,320)</span><br><span class="line">Computing result using CUDA Kernel...</span><br><span class="line">done</span><br><span class="line">Performance= 24.44 GFlop/s, Time= 5.363 msec, Size= 131072000 Ops, WorkgroupSize= 1024 threads/block</span><br><span class="line">Checking computed result for correctness: Result = PASS</span><br><span class="line"></span><br><span class="line">NOTE: The CUDA Samples are not meant for performancemeasurements. Results may vary when GPU Boost is enabled.</span><br><span class="line">==16367== Profiling application: /home/f64081169/Desktop/demo/NVIDIA_CUDA-10.2_Samples/0_Simple/matrixMul/matrixMul</span><br><span class="line">==16367== Profiling result:</span><br><span class="line">            Type  Time(%)      Time     Calls       Avg       Min       Max  Name</span><br><span class="line"> GPU activities:   99.98%  1.52216s       301  5.0570ms  4.4092ms  15.839ms  void MatrixMulCUDA&lt;int=32&gt;(float*, float*, float*, int, int)</span><br><span class="line">                    0.02%  233.19us         2  116.59us  79.743us  153.44us  [CUDA memcpy HtoD]</span><br><span class="line">                    0.01%  86.462us         1  86.462us  86.462us  86.462us  [CUDA memcpy DtoH]</span><br><span class="line">      API calls:   73.21%  1.59586s         1  1.59586s  1.59586s  1.59586s  cudaEventSynchronize</span><br><span class="line">                   25.02%  545.39ms         3  181.80ms  742.86us  543.81ms  cudaMalloc</span><br><span class="line">                    0.97%  21.223ms         2  10.612ms  21.197us  21.202ms  cudaStreamSynchronize</span><br><span class="line">                    0.64%  13.917ms       301  46.235us  34.114us  439.42us  cudaLaunchKernel</span><br><span class="line">                    0.11%  2.4702ms         3  823.41us  282.50us  1.7598ms  cudaMemcpyAsync</span><br><span class="line">...</span><br><span class="line">                    0.00%  4.1140us         2  2.0570us  1.3540us  2.7600us  cuDeviceGet</span><br><span class="line">                    0.00%  2.7090us         1  2.7090us  2.7090us  2.7090us  cuDeviceGetName</span><br><span class="line">                    0.00%  1.5100us         1  1.5100us  1.5100us  1.5100us  cudaGetDeviceCount</span><br><span class="line">                    0.00%     938ns         1     938ns     938ns     938ns  cuDeviceGetUuid</span><br></pre></td></tr></table></figure></li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-TW">
     <link itemprop="mainEntityOfPage" href="https://f64081169.github.io/2022/04/23/Jetson-Nano-Further-research/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -571,7 +692,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-count">5</span>
           <span class="site-state-item-name">文章</span>
         </a>
       </div>
